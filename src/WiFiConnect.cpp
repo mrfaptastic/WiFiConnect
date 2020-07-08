@@ -277,7 +277,7 @@ boolean WiFiConnect::startParamsPortal(AP_Continue apcontinue, const char  *apNa
   server->on("/params", std::bind(&WiFiConnect::handleParams, this));
   server->on("/wifisave", std::bind(&WiFiConnect::handleWifiSave, this));
   server->on("/i", std::bind(&WiFiConnect::handleInfo, this));
-  server->on("/r", std::bind(&WiFiConnect::handleReset, this));
+  //server->on("/r", std::bind(&WiFiConnect::handleReset, this)); // doesn't work - causes boot loop
   //server->on("/generate_204", std::bind(&WiFiConnect::handle204, this));  //Android/Chrome OS captive portal check.
   server->on("/fwlink", std::bind(&WiFiConnect::handleParamRoot, this));  //Microsoft captive portal. Maybe not needed. Might be handled by notFound handler.
   server->on("/hotspot_detect.html", std::bind(&WiFiConnect::handleParamRoot, this));
@@ -459,7 +459,7 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
   server->on("/0wifi", std::bind(&WiFiConnect::handleWifi, this, false));
   server->on("/wifisave", std::bind(&WiFiConnect::handleWifiSave, this));
   server->on("/i", std::bind(&WiFiConnect::handleInfo, this));
-  server->on("/r", std::bind(&WiFiConnect::handleReset, this));
+  //server->on("/r", std::bind(&WiFiConnect::handleReset, this));
   //server->on("/generate_204", std::bind(&WiFiConnect::handle204, this));  //Android/Chrome OS captive portal check.
   server->on("/fwlink", std::bind(&WiFiConnect::handleRoot, this));  //Microsoft captive portal. Maybe not needed. Might be handled by notFound handler.
   server->on("/hotspot_detect.html", std::bind(&WiFiConnect::handleRoot, this));
@@ -475,9 +475,12 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
   _lastAPPage = millis();
   _readyToConnect = false;
   while (true) {
-    if (millis() - _lastAPPage >= (_apTimeoutMins * 60 * 1000)) {
-      break;
-    }
+	
+	if (AP_LOOP != apcontinue)		
+		if (millis() - _lastAPPage >= (_apTimeoutMins * 60 * 1000)) {
+		  break;
+		}
+		
     dnsServer->processNextRequest();
     server->handleClient();
     if (_readyToConnect) {
@@ -488,7 +491,7 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
         if (_savecallback != NULL) {
           _savecallback();
         }
-        break;
+        break; // we connected!
       }
     }
     yield();
@@ -506,6 +509,7 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
         DEBUG_WC(F("No AP continue action"));
         break;
       case AP_LOOP:
+		/*
         DEBUG_WC(F("AP continue never ending loop"));
         displayManualReset();
         displayTurnOFF(5 * 60 * 100); //5mins
@@ -515,6 +519,7 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
           delay(1000);
           yield();
         }
+		*/
         break;
       case AP_RESTART:
        case AP_RESET:
@@ -570,6 +575,7 @@ boolean WiFiConnect::autoConnect(char const *ssidName, char const *ssidPassword,
   WiFi.mode(acWiFiMode);
   if (WiFi.status() == WL_CONNECTED) {
     DEBUG_WC(F("Already Connected"));
+	DEBUG_WC(WiFi.localIP());
     return true;
   }
   if (_sta_static_ip) {
@@ -577,12 +583,29 @@ boolean WiFiConnect::autoConnect(char const *ssidName, char const *ssidPassword,
     WiFi.config(_sta_static_ip, _sta_static_gw, _sta_static_sn);
     DEBUG_WC(WiFi.localIP());
   }
+  
+ //fix for auto connect racing issue
+  if (WiFi.status() == WL_CONNECTED && (WiFi.SSID() == String(ssidName))) {
+    DEBUG_WC(F("Already connected. Bailing out."));
+	DEBUG_WC(WiFi.localIP());
+	return true;
+    //return WL_CONNECTED;
+  }
+  
   int c = 0;
   while (c < _retryAttempts) {
     displayConnecting(c + 1, _retryAttempts);
     long ms = millis();
     if (ssidName == NULL || strlen(ssidName)==0) {
+		if (WiFi.SSID() == "")
+		{
+			DEBUG_WC(F("No WiFi configuration stored. Bailing."));
+			return false;
+		}
+		
       WiFi.begin();
+	 // return false; // No point being here. No config in flash.
+  
     } else {
       DEBUG_WC(F("Connecting with SSID & Password"));
       DEBUG_WC(ssidName);
@@ -1119,7 +1142,7 @@ void WiFiConnect::handleReset() {
   DEBUG_WC(F("Sent reset page"));
   delay(5000);
 #if defined(ESP8266)
-  ESP.reset();
+  ESP.reset(); // causes boot loop 
 #else
   ESP.restart();
 #endif

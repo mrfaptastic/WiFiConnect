@@ -11,7 +11,7 @@
    via a web based interface and allows for additional user parameters.
    It can also display messages via a OLED screen see WiFiConnectOLED class.
 
-   This is a heavily customised version from the origional <a href="https://github.com/tzapu/WiFiManager">WiFiManager</a>
+   This is a heavily customised version from the original <a href="https://github.com/tzapu/WiFiManager">WiFiManager</a>
    developed by https://github.com/tzapu .
 
    Dependencies
