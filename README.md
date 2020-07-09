@@ -9,7 +9,7 @@ Refer to the original https://github.com/smurf0969/WiFiConnect library for the f
 
 ## So what improvements does it have?
 
-* Cleaner Web Interface (the original WiFiManager HTML was needed a few tweaks to make it prettier)
+* Cleaner Web Interface (the original WiFiManager interface needed a few tweaks)
 * Attempts to provide WiFi connection status Success / Fail notification upon user-submission.
 * Some other code changes to make it useful.
 
