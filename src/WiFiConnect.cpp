@@ -405,9 +405,9 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
 		  
 		DEBUG_WC(F("Connection was a success, so changing to WIFI_STA mode."));		 
         WiFi.mode(WIFI_STA);
-		delay(100);
+		delay(500);
 		WiFi.reconnect();
-		delay(100);
+		delay(500);
         if (_savecallback != NULL) {
           _savecallback();
         }
