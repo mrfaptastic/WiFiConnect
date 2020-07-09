@@ -29,12 +29,13 @@ void startWiFi(boolean showParams = false) {
 
     /*
        AP_NONE = Continue executing code
-       AP_LOOP = Trap in a continuous loop with captive portal
+       AP_LOOP = Trap in a continuous loop - Device is useless
        AP_RESET = Restart the chip
+       AP_WAIT  = Trap in a continuous loop with captive portal until we have a working WiFi connection
     */
     if (!wc.autoConnect()) { // try to connect to wifi
       /* We could also use button etc. to trigger the portal on demand within main loop */
-      wc.startConfigurationPortal(AP_LOOP);//if not connected show the configuration portal
+      wc.startConfigurationPortal(AP_WAIT);//if not connected show the configuration portal
     }
 }
 
@@ -68,7 +69,7 @@ void loop() {
       // file found at server
       if (httpCode == HTTP_CODE_OK) 
       {
-          Serial.print("Got payload response of length: "); Serial.println(http.getSize(), DEC);
+          Serial.println("HTTP_CODE_OK");
       }
       
     } else {
@@ -79,10 +80,8 @@ void loop() {
   
     // Wifi Dies? Start Portal Again
     if (WiFi.status() != WL_CONNECTED) {
-      if (!wc.autoConnect()) wc.startConfigurationPortal(AP_LOOP);
+      if (!wc.autoConnect()) wc.startConfigurationPortal(AP_WAIT);
     }
   
-
-
-  delay (50000);
+  delay (20000);
 }
