@@ -14,3 +14,5 @@ Refer to the original https://github.com/smurf0969/WiFiConnect library for the f
 * Some other code changes to make it useful.
 
 Essentially if you want a improved version of WiFiManager and don't need OLED support, then use this.
+
+![The interface in a nutshell](Interface.jpg)
