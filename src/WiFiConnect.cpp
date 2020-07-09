@@ -747,7 +747,7 @@ void WiFiConnect::handleParamRoot() {
   page += String(F("<h1>"));
   page += _apName;
   page += String(F("</h1>"));
-  page += String(F("<h3>WiFiConnect</h3>"));
+//  page += String(F("<h3>WiFiConnect</h3>"));
   page += FPSTR(AP_HTTP_PORTAL_PARAM_OPTIONS);
   page += FPSTR(AP_HTTP_END);
 
@@ -824,7 +824,7 @@ void WiFiConnect::handleRoot() {
   page += String(F("<h1>"));
   page += _apName;
   page += String(F("</h1>"));
-  page += String(F("<h3>WiFiConnect</h3>"));
+  //page += String(F("<h3>WiFiConnect</h3>"));
   page += FPSTR(AP_HTTP_PORTAL_OPTIONS);
   page += FPSTR(AP_HTTP_END);
 
