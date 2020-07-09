@@ -18,7 +18,7 @@ const char AP_HTTP_HEAD[] PROGMEM            = "<!DOCTYPE html><html lang=\"en\"
 /*! \def AP_HTTP_STYLE[] PROGMEM 
 Style for our access point 
 */
-const char AP_HTTP_STYLE[] PROGMEM           = "<style>h1 { font-weight: normal; } .msgbox { font-size:1.2rem; line-height: 1.8em; padding: 0.5em; background-color: #ddffff; border-left: 6px solid #ccc; margin-bottom:1em; } .c{text-align:center}div,input{padding:5px;font-size:1em}input{width:95%;margin-top:5px;margin-bottom:10px}body{text-align:center;font-family:verdana;}button{border:0;border-radius:.3rem;background-color:#1fa3ec;color:#fff;line-height:2.6rem;font-size:1.2rem;width:100%}.q{float:right;width:64px;text-align:right}.l{background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAALVBMVEX///8EBwfBwsLw8PAzNjaCg4NTVVUjJiZDRUUUFxdiZGSho6OSk5Pg4eFydHTCjaf3AAAAZElEQVQ4je2NSw7AIAhEBamKn97/uMXEGBvozkWb9C2Zx4xzWykBhFAeYp9gkLyZE0zIMno9n4g19hmdY39scwqVkOXaxph0ZCXQcqxSpgQpONa59wkRDOL93eAXvimwlbPbwwVAegLS1HGfZAAAAABJRU5ErkJggg==) no-repeat left center;background-size:1em;}</style>";
+const char AP_HTTP_STYLE[] PROGMEM           = "<style type=\"text/css\">h1 { font-weight: normal; } .msgbox { font-size:1.2rem; line-height: 1.8em; padding: 0.5em; background-color: #ddffff; border-left: 6px solid #ccc; margin-bottom:1em; } .c{text-align:center}div,input{padding:5px;font-size:1em}input{width:95%;margin-top:5px;margin-bottom:10px}body{text-align:center;font-family:verdana;}button{border:0;border-radius:.3rem;background-color:#1fa3ec;color:#fff;line-height:2.6rem;font-size:1.2rem;width:100%}.q{float:right;width:64px;text-align:right}.l{background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAALVBMVEX///8EBwfBwsLw8PAzNjaCg4NTVVUjJiZDRUUUFxdiZGSho6OSk5Pg4eFydHTCjaf3AAAAZElEQVQ4je2NSw7AIAhEBamKn97/uMXEGBvozkWb9C2Zx4xzWykBhFAeYp9gkLyZE0zIMno9n4g19hmdY39scwqVkOXaxph0ZCXQcqxSpgQpONa59wkRDOL93eAXvimwlbPbwwVAegLS1HGfZAAAAABJRU5ErkJggg==) no-repeat left center;background-size:1em;}.cfail,.cok{text-align:center; font-size:1.2rem; line-height: 2em; margin-top: 1em; padding: 0.7em; display:none;} .cfail{font-color: #FFF;background-color: #ff8433;} .cok{ background-color: #6aff33;}</style>";
 /** Scripts for our page */
 const char AP_HTTP_SCRIPT[] PROGMEM          = "<script>function c(l){document.getElementById('s').value=l.innerText||l.textContent;document.getElementById('p').focus();}</script>";
 /** End of the header section and beginning of the body */
@@ -36,11 +36,17 @@ const char AP_HTTP_FORM_END[] PROGMEM        = "<br/><button type='submit'>Save 
 /** HTML snippet to recan for networks */
 const char AP_HTTP_SCAN_LINK[] PROGMEM       = "<br/><div class=\"c\"><a href=\"/wifi\">Re-scan</a></div>";
 /** HTML snippet for saved confirmation */
-const char AP_HTTP_SAVED[] PROGMEM           = "<div>Credentials Saved.<br />Connecting to WiFi network.<br />If it fails, please reconnect to this device to try again.</div>";
+// https://stackoverflow.com/questions/20760635/why-does-setting-xmlhttprequest-responsetype-before-calling-open-throw
+const char AP_HTTP_SAVED[] PROGMEM           = "<div>Credentials Saved.<br />Attempting to connect to  WiFi network. Please wait.... <br /><script type=\"text/javascript\">function doPing(){timeout_count>40&&(window.clearInterval(myPinger),document.getElementById(\"conn_ok\").style.display=\"block\");var o=new XMLHttpRequest;o.onload=function(){console.log(this.responseText),document.getElementById(\"conn_fail\").style.display=\"block\"},o.ontimeout=function(o){console.log(\"Timeout Counter is: \"+timeout_count++)},o.open(\"GET\",\"/foo\"),o.timeout=1e3,o.send(null)}timeout_count=0;var myPinger=window.setInterval(doPing,1e3);</script><div class=\"cok\" id=\"conn_ok\">Connected to {ap} !<br />You may now close this window. </div><div class=\"cfail\" id=\"conn_fail\">Failed to connect to {ap}!<br /><a href=\"/\">Click here</a> to try again.</div></div>";
 /** End of the HTML page */
 const char AP_HTTP_END[] PROGMEM             = "</div></body></html>";
 /** HTML snippet for our custom parameters portal form */
 const char AP_HTTP_PORTAL_PARAM_OPTIONS[] PROGMEM  = "<form action=\"/params\" method=\"get\"><button>Configure Parameters</button></form><br/><form action=\"/i\" method=\"get\"><button>Info</button></form><br/>";
 /** HTML snippet for our custom parameters save */
 const char AP_HTTP_FORM_PARAM_START[] PROGMEM      ="<form method=\"get\" action=\"wifisave\">";
+
+/** HTML snippet connection success or fail */
+const char AP_HTTP_CONNECTION_SUCCESS[] PROGMEM = "<div class=\"cok\">Connected to {ap} !</div>";
+const char AP_HTTP_CONNECTION_FAIL[] PROGMEM 	= "<div class=\"cfail\">Failed to connect to {ap}!</div>	";
+
 #endif

@@ -201,6 +201,7 @@ boolean WiFiConnect::startParamsPortal() {
             AP_NONE - continue running code,
             AP_LOOP - stay in an infinate loop,
             AP_RESET - Restart the ESP
+			AP_WAIT  - Keep AP alive waiting for input			
    @return  Returns wether WiFi is connected to a network if
             AP_NONE is passed as a parameter
 */
@@ -216,6 +217,7 @@ boolean WiFiConnect::startParamsPortal(AP_Continue apcontinue) {
             AP_NONE - continue running code,
             AP_LOOP - stay in an infinate loop,
             AP_RESET - Restart the ESP
+			AP_WAIT  - Keep AP alive waiting for input			
     @param  apName
             The Name to use for the access point
     @param  apPassword
@@ -225,131 +227,9 @@ boolean WiFiConnect::startParamsPortal(AP_Continue apcontinue) {
 */
 /**************************************************************************/
 boolean WiFiConnect::startParamsPortal(AP_Continue apcontinue, const char  *apName, const char  *apPassword) {
-  DEBUG_WC(F("WiFi AP STA - Parameters Portal"));
-  _lastAPPage = millis();
-  if (WiFi.status() != WL_CONNECTED) {
-    startConfigurationPortal(AP_LOOP, apName, apPassword);
-  } else {
-    WiFi.mode(WIFI_AP_STA);
-  }
-  dnsServer.reset(new DNSServer());
-#ifdef ESP8266
-  server.reset(new ESP8266WebServer(80));
-#else
-  server.reset(new WebServer(80));
-#endif
-  setAPName(apName);
-  DEBUG_WC(_apName);
-  if (apPassword != NULL) {
-    if (strlen(apPassword) < 8 || strlen(apPassword) > 63) {
-      // fail passphrase to short or long!
-      DEBUG_WC(F("Invalid AccessPoint password. Ignoring"));
-      apPassword = NULL;
-    }
-    //_apPassword = apPassword;
-    strcpy(_apPassword,apPassword);
-    DEBUG_WC(_apPassword);
-  }
 
-  //optional soft ip config
-  if (_ap_static_ip) {
-    DEBUG_WC(F("Custom AP IP/GW/Subnet"));
-    WiFi.softAPConfig(_ap_static_ip, _ap_static_gw, _ap_static_sn);
-  }
-
-  if (_apPassword != NULL) {
-    WiFi.softAP(_apName, _apPassword);//password option
-  } else {
-    WiFi.softAP(_apName);
-  }
-
-  delay(500); // Without delay I've seen the IP address blank
-  DEBUG_WC(F("AP IP address: "));
-  DEBUG_WC(WiFi.softAPIP());
-  displayParams();
-  /* Setup the DNS server redirecting all the domains to the apIP */
-  dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
-  dnsServer->start(DNS_PORT, "*", WiFi.softAPIP());
-
-  /* Setup web pages: root, wifi config pages, SO captive portal detectors and not found. */
-  server->on("/", std::bind(&WiFiConnect::handleParamRoot, this));
-  server->on("/param", std::bind(&WiFiConnect::handleParams, this));
-  server->on("/params", std::bind(&WiFiConnect::handleParams, this));
-  server->on("/wifisave", std::bind(&WiFiConnect::handleWifiSave, this));
-  server->on("/i", std::bind(&WiFiConnect::handleInfo, this));
-  //server->on("/r", std::bind(&WiFiConnect::handleReset, this)); // doesn't work - causes boot loop
-  //server->on("/generate_204", std::bind(&WiFiConnect::handle204, this));  //Android/Chrome OS captive portal check.
-  server->on("/fwlink", std::bind(&WiFiConnect::handleParamRoot, this));  //Microsoft captive portal. Maybe not needed. Might be handled by notFound handler.
-  server->on("/hotspot_detect.html", std::bind(&WiFiConnect::handleParamRoot, this));
-  server->onNotFound (std::bind(&WiFiConnect::handleNotFound, this));
-  server->begin(); // Web server start
-  DEBUG_WC(F("HTTP server started"));
-
-  //notify we entered AP mode
-  if ( _apcallback != NULL) {
-    _apcallback(this);
-  }
-
-  _lastAPPage = millis();
-  _readyToConnect = false;
-  while (true) {
-    if (millis() - _lastAPPage >= (_apTimeoutMins * 60 * 1000)) {
-      break;
-    }
-    dnsServer->processNextRequest();
-    server->handleClient();
-    if (_readyToConnect) {
-      _readyToConnect = false;
-      if (autoConnect(_ssid.c_str(), _password.c_str(), WIFI_AP_STA)) {
-        WiFi.mode(WIFI_STA);
-
-        if (_savecallback != NULL) {
-          _savecallback();
-        }
-        break;
-      }
-    }
-    yield();
-  }
-  //teardown??
-  DEBUG_WC(F("Exiting AP Param Mode"));
-  server->close();
-  server.reset();
-
-  dnsServer.reset();
-  boolean con = (WiFi.status() == WL_CONNECTED);
-  if (!con) {
-    switch (apcontinue) {
-      case AP_NONE:
-        DEBUG_WC(F("No AP continue action"));
-        break;
-      case AP_LOOP:
-        DEBUG_WC(F("AP continue never ending loop"));
-        displayManualReset();
-        displayTurnOFF(5 * 60 * 100); //5mins
-        WiFi.mode(WIFI_OFF);
-        while (true) {
-          displayLoop();
-          delay(1000);
-          yield();
-        }
-        break;
-       case AP_RESTART:
-      case AP_RESET:
-        displayManualReset();
-        DEBUG_WC(F("AP restart chip"));
-        delay(1000);
-#if defined(ESP8266)
-        ESP.reset();
-#else
-        ESP.restart();
-#endif
-        delay(2000);
-        break;
-    }
-    WiFi.mode(WIFI_STA);
-  }
-  return con;
+	// Wrapper
+	return startConfigurationPortal(apcontinue, apName, apPassword, true);  
 }
 /**************************************************************************/
 /*!
@@ -374,6 +254,7 @@ boolean WiFiConnect::startConfigurationPortal() {
             AP_NONE - continue running code,
             AP_LOOP - stay in an infinate loop,
             AP_RESET - Restart the ESP
+			AP_WAIT  - Keep AP alive waiting for input
     @return Returns wether WiFi is connected to a network if
             AP_NONE is passed as a parameter
 */
@@ -391,6 +272,7 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue) {
             AP_LOOP - stay in an infinate loop,
             AP_RESET - Restart the ESP, handy for sensors if you network
                        goes down, do they keep trying to connect.
+			AP_WAIT  - Keep AP alive waiting for input					   
     @param  apName
             The Name to use for the access point
     @param  apPassword
@@ -399,15 +281,25 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue) {
             AP_NONE is passed as a parameter
 */
 /**************************************************************************/
-boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char  *apName, const char  *apPassword) {
-  DEBUG_WC(F("WiFi AP STA - Configuration Portal"));
+boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char  *apName, const char  *apPassword, bool paramsMode) {
+
+  if (paramsMode) {
+	    DEBUG_WC(F("WiFi AP STA - Parameters Portal"));
+  } else {
+		DEBUG_WC(F("WiFi AP STA - Configuration Portal"));
+  }
   _lastAPPage = millis();
   //  WiFi.mode(WIFI_AP);//Fix for scan bug when switching from STA to AP STA
   //  delay(1);
   //  WiFi.mode(WIFI_AP_STA);
   //  delay(1);
   if (WiFi.status() != WL_CONNECTED) {
-    WiFi.mode(WIFI_AP);
+	  if (paramsMode) {
+		   // Can't show the parameters portal if not connected to a WiFi network.
+		   startConfigurationPortal(AP_WAIT, apName, apPassword, false);
+	  } else {
+		  WiFi.mode(WIFI_AP);
+	  }
   } else {
     WiFi.mode(WIFI_AP_STA);
   }
@@ -420,7 +312,6 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
   setAPName(apName);
   DEBUG_WC(_apName);
 
-  //if (apPassword != NULL || apPassword!="") {
   if (strlen(apPassword)>0){
     if (strlen(apPassword) < 8 || strlen(apPassword) > 63) {
       // fail passphrase to short or long!
@@ -448,22 +339,43 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
   delay(500); // Without delay I've seen the IP address blank
   DEBUG_WC(F("AP IP address: "));
   DEBUG_WC(WiFi.softAPIP());
-  displayAP();
+  
+  // Show on OLED depending on the mode
+  if (!paramsMode) { displayAP(); } else {   displayParams(); }
+  
   /* Setup the DNS server redirecting all the domains to the apIP */
   dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
   dnsServer->start(DNS_PORT, "*", WiFi.softAPIP());
 
-  /* Setup web pages: root, wifi config pages, SO captive portal detectors and not found. */
-  server->on("/", std::bind(&WiFiConnect::handleRoot, this));
-  server->on("/wifi", std::bind(&WiFiConnect::handleWifi, this, true));
-  server->on("/0wifi", std::bind(&WiFiConnect::handleWifi, this, false));
-  server->on("/wifisave", std::bind(&WiFiConnect::handleWifiSave, this));
-  server->on("/i", std::bind(&WiFiConnect::handleInfo, this));
-  //server->on("/r", std::bind(&WiFiConnect::handleReset, this));
-  //server->on("/generate_204", std::bind(&WiFiConnect::handle204, this));  //Android/Chrome OS captive portal check.
-  server->on("/fwlink", std::bind(&WiFiConnect::handleRoot, this));  //Microsoft captive portal. Maybe not needed. Might be handled by notFound handler.
-  server->on("/hotspot_detect.html", std::bind(&WiFiConnect::handleRoot, this));
-  server->onNotFound (std::bind(&WiFiConnect::handleNotFound, this));
+  if (paramsMode)
+  {
+	  
+	  server->on("/", std::bind(&WiFiConnect::handleParamRoot, 			this));
+	  server->on("/param", std::bind(&WiFiConnect::handleParams, 		this));
+	  server->on("/params", std::bind(&WiFiConnect::handleParams, 		this));
+	  server->on("/wifisave", std::bind(&WiFiConnect::handleWifiSave, 	this));
+	  server->on("/i", std::bind(&WiFiConnect::handleInfo, 				this));
+	  //server->on("/r", std::bind(&WiFiConnect::handleReset, this)); // doesn't work - causes boot loop
+	  //server->on("/generate_204", std::bind(&WiFiConnect::handle204, this));  //Android/Chrome OS captive portal check.
+	  server->on("/fwlink", std::bind(&WiFiConnect::handleParamRoot, 	this));  //Microsoft captive portal. Maybe not needed. Might be handled by notFound handler.
+	  server->on("/hotspot_detect.html", std::bind(&WiFiConnect::handleParamRoot, this));
+	  
+  } else  { // Config portal mode
+	  
+	  /* Setup web pages: root, wifi config pages, SO captive portal detectors and not found. */
+	  server->on("/", 			std::bind(&WiFiConnect::handleRoot, this));
+	  server->on("/wifi", 		std::bind(&WiFiConnect::handleWifi, this, true));   // Auto Scan of APs
+	  server->on("/0wifi", 		std::bind(&WiFiConnect::handleWifi, this, false)); // Manual entry form only
+	  server->on("/wifisave", 	std::bind(&WiFiConnect::handleWifiSave, this));
+	  server->on("/i", 			std::bind(&WiFiConnect::handleInfo, this)); // Not of interest - commented out in static HTML
+	  server->on("/r", 			std::bind(&WiFiConnect::handleReset, this));
+	  //server->on("/generate_204", std::bind(&WiFiConnect::handle204, this));  //Android/Chrome OS captive portal check.
+	  server->on("/fwlink", 	std::bind(&WiFiConnect::handleRoot, this));  //Microsoft captive portal. Maybe not needed. Might be handled by notFound handler.
+	  server->on("/hotspot_detect.html", std::bind(&WiFiConnect::handleRoot, this));
+	  server->onNotFound 	   (std::bind(&WiFiConnect::handleNotFound, this));
+	  
+  } // config portal  
+  
   server->begin(); // Web server start
   DEBUG_WC(F("HTTP server started"));
 
@@ -471,12 +383,16 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
   if ( _apcallback != NULL) {
     _apcallback(this);
   }
+  
+  if (apcontinue == AP_WAIT)
+	  DEBUG_WC(F("AP to stay alive indefinitely waiting for configuration."));
+		
 
   _lastAPPage = millis();
-  _readyToConnect = false;
+  _readyToConnect = false;	  
   while (true) {
 	
-	if (AP_LOOP != apcontinue)		
+	if (apcontinue != AP_WAIT)	// Stay here if the AP_LOOP enabled	
 		if (millis() - _lastAPPage >= (_apTimeoutMins * 60 * 1000)) {
 		  break;
 		}
@@ -486,18 +402,28 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
     if (_readyToConnect) {
       _readyToConnect = false;
       if (autoConnect(_ssid.c_str(), _password.c_str(), WIFI_AP_STA)) {
+		  
+		DEBUG_WC(F("Connection was a success, so changing to WIFI_STA mode."));		 
         WiFi.mode(WIFI_STA);
-
+		delay(100);
+		WiFi.reconnect();
+		delay(100);
         if (_savecallback != NULL) {
           _savecallback();
         }
         break; // we connected!
       }
-    }
+	  else
+	  {
+		  DEBUG_WC(F("Connection was a failure. We keep waiting."));		  
+	  }
+    } // ready to connect
+	
     yield();
   }
+  
   //teardown??
-  DEBUG_WC(F("Exiting AP Mode"));
+  DEBUG_WC(F("Exiting AP (or AP Params) Mode"));
   server->close();
   server.reset();
 
@@ -509,8 +435,7 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
         DEBUG_WC(F("No AP continue action"));
         break;
       case AP_LOOP:
-		/*
-        DEBUG_WC(F("AP continue never ending loop"));
+        DEBUG_WC(F("AP to turn off and stay in loop lockup not being accessible."));
         displayManualReset();
         displayTurnOFF(5 * 60 * 100); //5mins
         WiFi.mode(WIFI_OFF);
@@ -519,7 +444,7 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
           delay(1000);
           yield();
         }
-		*/
+	
         break;
       case AP_RESTART:
        case AP_RESET:
@@ -833,6 +758,7 @@ void WiFiConnect::handleRoot() {
 
 
 }
+
 /**************************************************************************/
 /*!
     @brief  Handles the web request for entering the SSID and Password of
@@ -848,7 +774,7 @@ void WiFiConnect::handleWifi(boolean scan) {
   DEBUG_WC(F("Sending WiFi"));
 
   String page = FPSTR(AP_HTTP_HEAD);
-  page.replace("{v}", "Config ESP");
+  page.replace("{v}", "Select WiFi");
   page += FPSTR(AP_HTTP_SCRIPT);
   page += FPSTR(AP_HTTP_STYLE);
   page += FPSTR(AP_HTTP_HEAD_END);
@@ -1058,6 +984,7 @@ void WiFiConnect::handleWifiSave() {
   page += FPSTR(AP_HTTP_STYLE);
   page += FPSTR(AP_HTTP_HEAD_END);
   page += FPSTR(AP_HTTP_SAVED);
+  page.replace("{ap}", _ssid);
   page += FPSTR(AP_HTTP_END);
 
   server->sendHeader("Content-Length", String(page.length()));
@@ -1199,6 +1126,8 @@ void WiFiConnect::handleNotFound() {
 */
 /**************************************************************************/
 boolean WiFiConnect::captivePortal() {
+	DEBUG_WC(server->hostHeader());
+	
   if (!isIp(server->hostHeader()) ) {
     _lastAPPage = millis();
     DEBUG_WC(F("Request redirected to captive portal"));

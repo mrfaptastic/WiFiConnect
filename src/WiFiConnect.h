@@ -51,7 +51,8 @@ enum AP_Continue {
   AP_NONE, ///< No action, continues to run code
   AP_LOOP, ///< Stalls execution with an infinate loop
   AP_RESTART, ///< Restarts the chip, allowing it to try to setup again. Handy for sensors when wifi is lost.
-  AP_RESET ///< Same as AP_RESTART
+  AP_RESET, ///< Same as AP_RESTART
+  AP_WAIT   // Keep the AP and webserver running, sit quietly and be patient.
 };
 /**************************************************************************/
 /*!
@@ -68,7 +69,7 @@ class WiFiConnect {
 
     boolean startConfigurationPortal();
     boolean startConfigurationPortal(AP_Continue apcontinue);
-    boolean startConfigurationPortal(AP_Continue apcontinue, const char*  apName, const char*  apPassword = NULL);
+    boolean startConfigurationPortal(AP_Continue apcontinue, const char*  apName, const char*  apPassword = NULL, bool paramsMode = false);
 
     boolean startParamsPortal();
     boolean startParamsPortal(AP_Continue apcontinue);
@@ -147,8 +148,8 @@ class WiFiConnect {
     std::unique_ptr<WebServer>        server; ///< Web server for serving access point pages
 #endif
 
-     char _apName[32] ; ///< Holder for the access point name
-     char _apPassword[64] ; ///< Holder for the access point password
+     char _apName[33] ; ///< Holder for the access point name
+     char _apPassword[65] ; ///< Holder for the access point password
     
     IPAddress     _ap_static_ip; ///< Variable for holding Static IP Address for the access point
     IPAddress     _ap_static_gw; ///< Variable for holding Static Gateway IP Address for the access point
