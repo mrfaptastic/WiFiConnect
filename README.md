@@ -6,3 +6,11 @@ Note: This fork is a copy of https://github.com/smurf0969/WiFiConnect but with t
 Enhancements made in this fork will be pushed upstream to the benefit of smurf0969's library.
 
 Refer to the original https://github.com/smurf0969/WiFiConnect library for the full package.
+
+## So what improvements does it have?
+
+* Cleaner Web Interface (the original WiFiManager HTML was needed a few tweaks to make it prettier)
+* Attempts to provide WiFi connection status Success / Fail notification upon user-submission.
+* Some other code changes to make it useful.
+
+Essentially if you want a improved version of WiFiManager and don't need OLED support, then use this.
