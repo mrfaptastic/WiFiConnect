@@ -393,7 +393,7 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
   while (true) {
 	
 	if (apcontinue != AP_WAIT)	// Stay here if the AP_LOOP enabled	
-		if (millis() - _lastAPPage >= (_apTimeoutMins * 60 * 1000)) {
+		if (millis() - (unsigned long int)_lastAPPage >= ( (unsigned int)_apTimeoutMins * 60 * 1000)) {
 		  break;
 		}
 		
@@ -431,8 +431,8 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
   boolean con = (WiFi.status() == WL_CONNECTED);
   if (!con) {
     switch (apcontinue) {
-	  case AP_WAIT:
-		break;
+      case AP_WAIT:
+        break;
       case AP_NONE:
         DEBUG_WC(F("No AP continue action"));
         break;
@@ -539,7 +539,7 @@ boolean WiFiConnect::autoConnect(char const *ssidName, char const *ssidPassword,
       DEBUG_WC(ssidPassword);
       WiFi.begin(ssidName, ssidPassword);
     }
-    while (millis() - ms < (_connectionTimeoutSecs * 1000)) {
+    while (millis() - (unsigned long int)ms < ( (unsigned int)_connectionTimeoutSecs * 1000)) {
       int ws = WiFi.status();
       if (ws == WL_CONNECTED) {
         DEBUG_WC(F("WIFI_CONNECTED"));
@@ -1202,7 +1202,7 @@ int WiFiConnect::getRSSIasQuality(int RSSI) {
 */
 /**************************************************************************/
 boolean WiFiConnect::isIp(String str) {
-  for (int i = 0; i < str.length(); i++) {
+  for (unsigned int i = 0; i < str.length(); i++) {
     int c = str.charAt(i);
     if (c != '.' && (c < '0' || c > '9')) {
       return false;
