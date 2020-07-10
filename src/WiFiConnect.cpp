@@ -431,6 +431,8 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
   boolean con = (WiFi.status() == WL_CONNECTED);
   if (!con) {
     switch (apcontinue) {
+	  case AP_WAIT:
+		break;
       case AP_NONE:
         DEBUG_WC(F("No AP continue action"));
         break;
