@@ -5,7 +5,7 @@ Note: This fork is a copy of https://github.com/smurf0969/WiFiConnect but with t
 
 Enhancements made in this fork can be merged upstream to the benefit of smurf0969's library.
 
-Refer to the original https://github.com/smurf0969/WiFiConnect library for the full package.
+Refer to the original https://github.com/smurf0969/WiFiConnect library for a full package with the OLED bits.
 
 ## So what improvements does it have?
 
