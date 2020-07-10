@@ -1,5 +1,5 @@
 # WiFiConnect (without the OLED functionality)
-WiFi Manager for ESP8266 and ESP32 chips with support for OLED 128x64 screens
+WiFi Manager for ESP8266 and ESP32 chips
 
 Note: This fork is a copy of https://github.com/smurf0969/WiFiConnect but with the OLED components (.h, .cpp) files REMOVED ironically because smurf's re-implementation of [WiFiManager](https://github.com/tzapu/WiFiManager) is much cleaner and I do not require the need for OLED support, nor does it compile without it.
 
