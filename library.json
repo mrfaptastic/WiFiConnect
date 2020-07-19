@@ -1,7 +1,7 @@
  {
   "name": "WiFiConnect Lite",
   "keywords": "esp32, esp8266, https, http, wifi, connection, network, captive, portal, manager",
-  "description": "This project is a fork of the 'WiFiConnect' library, which itself was based upon the largely defunct WiFiManager. It includes a number of captive portal user interface improvements and bug fixes.",
+  "description": "This project is a fork of the 'WiFiConnect' library, which itself was based upon the largely defunct 'WiFiManager' library. It includes a number of captive portal user interface improvements and bug fixes.",
   "repository": {
     "type": "git",
     "url": "https://github.com/mrfaptastic/WiFiConnectLite.git"
