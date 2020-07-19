@@ -293,15 +293,23 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
   //  delay(1);
   //  WiFi.mode(WIFI_AP_STA);
   //  delay(1);
+	
+#ifdef ARDUINO_ARCH_ESP8266	
+	WiFi.setSleepMode(WIFI_NONE_SLEEP);
+#endif 
+
+  delay(50);
+
   if (WiFi.status() != WL_CONNECTED) {
 	  if (paramsMode) {
 		   // Can't show the parameters portal if not connected to a WiFi network.
 		   startConfigurationPortal(AP_WAIT, apName, apPassword, false);
 	  } else {
+      DEBUG_WC("startConfigurationPortal(): WiFi.mode(WIFI_AP)");
 		  WiFi.mode(WIFI_AP);
 	  }
   } else {
-    WiFi.mode(WIFI_AP_STA);
+    WiFi.mode(WIFI_AP_STA); // start an access point on the same channel we're already connected to.
   }
   dnsServer.reset(new DNSServer());
 #ifdef ESP8266
@@ -334,6 +342,7 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
     WiFi.softAP(_apName, _apPassword);//password option
   } else {
     WiFi.softAP(_apName);
+    DEBUG_WC("startConfigurationPortal(): WiFi.softAP(_apName)");
   }
 
   delay(500); // Without delay I've seen the IP address blank
@@ -372,12 +381,12 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
 	  //server->on("/generate_204", std::bind(&WiFiConnect::handle204, this));  //Android/Chrome OS captive portal check.
 	  server->on("/fwlink", 	std::bind(&WiFiConnect::handleRoot, this));  //Microsoft captive portal. Maybe not needed. Might be handled by notFound handler.
 	  server->on("/hotspot_detect.html", std::bind(&WiFiConnect::handleRoot, this));
-	  server->onNotFound 	   (std::bind(&WiFiConnect::handleNotFound, this));
 	  
   } // config portal  
-  
-  server->begin(); // Web server start
-  DEBUG_WC(F("HTTP server started"));
+
+  	server->onNotFound 	   (std::bind(&WiFiConnect::handleNotFound, this));
+    server->begin(); // Web server start
+    DEBUG_WC(F("HTTP server started"));
 
   //notify we entered AP mode
   if ( _apcallback != NULL) {
@@ -401,22 +410,25 @@ boolean WiFiConnect::startConfigurationPortal(AP_Continue apcontinue, const char
     server->handleClient();
     if (_readyToConnect) {
       _readyToConnect = false;
+
+      DEBUG_WC(F("startConfigurationPortal(): Calling: autoConnect(_ssid.c_str(), _password.c_str(), WIFI_AP_STA)"));	      
+
       if (autoConnect(_ssid.c_str(), _password.c_str(), WIFI_AP_STA)) {
 		  
-		DEBUG_WC(F("Connection was a success, so changing to WIFI_STA mode."));		 
+        DEBUG_WC(F("Connection was a success, so changing to WIFI_STA mode only."));		
         WiFi.mode(WIFI_STA);
-		delay(500);
-		WiFi.reconnect();
-		delay(500);
+        delay(500);
+        //WiFi.reconnect();
+        //delay(500);
         if (_savecallback != NULL) {
           _savecallback();
         }
         break; // we connected!
       }
-	  else
-	  {
-		  DEBUG_WC(F("Connection was a failure. We keep waiting."));		  
-	  }
+      else
+      {
+        DEBUG_WC(F("Connection was a failure. We keep waiting."));		  
+      }
     } // ready to connect
 	
     yield();
@@ -498,11 +510,18 @@ boolean WiFiConnect::autoConnect() {
 */
 /**************************************************************************/
 boolean WiFiConnect::autoConnect(char const *ssidName, char const *ssidPassword, WiFiMode_t acWiFiMode) {
+/*
+ #ifdef ESP32
+    WiFi.persistent(false); // disable persistent for esp32 after esp_wifi_start or else saves wont work (from WiFiManager)
+ #endif  
+*/
+
   DEBUG_WC(F("Auto Connect"));
   WiFi.mode(acWiFiMode);
+  DEBUG_WC("autoConnect():WiFi.mode(acWiFiMode)");
   if (WiFi.status() == WL_CONNECTED) {
     DEBUG_WC(F("Already Connected"));
-	DEBUG_WC(WiFi.localIP());
+	  DEBUG_WC(WiFi.localIP());
     return true;
   }
   if (_sta_static_ip) {
@@ -512,33 +531,74 @@ boolean WiFiConnect::autoConnect(char const *ssidName, char const *ssidPassword,
   }
   
  //fix for auto connect racing issue
+ /*
   if (WiFi.status() == WL_CONNECTED && (WiFi.SSID() == String(ssidName))) {
     DEBUG_WC(F("Already connected. Bailing out."));
-	DEBUG_WC(WiFi.localIP());
-	return true;
+	  DEBUG_WC(WiFi.localIP());
+	  return true;
     //return WL_CONNECTED;
   }
-  
+*/
+
   int c = 0;
   while (c < _retryAttempts) {
     displayConnecting(c + 1, _retryAttempts);
     long ms = millis();
     if (ssidName == NULL || strlen(ssidName)==0) {
-		if (WiFi.SSID() == "")
-		{
-			DEBUG_WC(F("No WiFi configuration stored. Bailing."));
-			return false;
-		}
-		
-      WiFi.begin();
-	 // return false; // No point being here. No config in flash.
-  
+    
+    #ifdef ESP8266
+        if (WiFi.SSID() == "")
+        {
+          DEBUG_WC(F("No ESP8266 WiFi SSID configuration stored. Bailing."));
+          return false;
+        }    
+        DEBUG_WC(F("Stored SSID:")); DEBUG_WC(WiFi.SSID());        
+    #endif
+
+    #ifdef ESP32
+      // WiFi.SSID() Always returns null on ESP32.... Arduino framework bug?
+      // So use lower-level IDF function to pull persistent configuration.
+      wifi_config_t conf;
+      esp_wifi_get_config(WIFI_IF_STA, &conf);
+
+      String stored_ssid = String(reinterpret_cast<const char*>(conf.sta.ssid));
+      if (stored_ssid == "")
+      {
+        DEBUG_WC(F("No ESP32 WiFi SSID configuration stored. Bailing."));
+        return false;
+      }       
+
+        DEBUG_WC(F("Stored SSID:")); DEBUG_WC(stored_ssid);              
+    #endif
+
+        
+      WiFi.begin(); // persistence is on by default, so if this WiFi connection should happen automatically
+      DEBUG_WC("autoConnect(): WiFi.begin()");
+
+/*          
+    #ifdef ESP32
+                            //https://forum.arduino.cc/index.php?topic=652513.0
+      int  wifi_retry = 0;   // COUNTER SOLVES ESP32-BUG WITH CERTAIN ROUTERS: CONNECTION ONLY ESTABLISHED EVERY SECOND TIME
+    
+      while (WiFi.waitForConnectResult() != WL_CONNECTED && wifi_retry < 3) {
+          DEBUG_WC("WLAN Not yet connected on ESP32...retrying");
+          WiFi.begin();
+          delay(250);
+          wifi_retry++;
+      }
+
+    #endif
+*/
+
     } else {
       DEBUG_WC(F("Connecting with SSID & Password"));
       DEBUG_WC(ssidName);
       DEBUG_WC(ssidPassword);
       WiFi.begin(ssidName, ssidPassword);
+      DEBUG_WC("autoConnect(): WiFi.begin(ssidName, ssidPassword)");
     }
+
+
     while (millis() - (unsigned long int)ms < ( (unsigned int)_connectionTimeoutSecs * 1000)) {
       int ws = WiFi.status();
       if (ws == WL_CONNECTED) {
@@ -549,16 +609,16 @@ boolean WiFiConnect::autoConnect(char const *ssidName, char const *ssidPassword,
         return true;
       } else if (ws == WL_CONNECT_FAILED) {
         DEBUG_WC(F("WIFI_CONNECT_FAILED"));
-        return false;
+        delay(500);
+        //return false;
       } else {
-
-        delay(100);
+        delay(200);
         yield();
       }
     }
     DEBUG_WC(statusToString(WiFi.status()));
     c++;
-  }
+  } // attemps
   DEBUG_WC(statusToString(WiFi.status()));
   return false;
 }
@@ -1095,6 +1155,7 @@ void WiFiConnect::handle204() {
 /**************************************************************************/
 void WiFiConnect::handleNotFound() {
   if (captivePortal()) { // If captive portal redirect instead of displaying the error page.
+    DEBUG_WC(F("Webserver called handleNotFound();"));  
     return;
   }
   _lastAPPage = millis();
