@@ -1,5 +1,5 @@
 # WiFiConnect (without the OLED functionality)
-WiFi Manager for ESP8266 and ESP32 chips
+A simple, to the point, WiFi Manager for ESP8266 and ESP32 chips. A perfect efficient solution to get your ESP configured and connected to WiFi, quickly and easily.
 
 Note: This fork is a copy of https://github.com/smurf0969/WiFiConnect but with the OLED components (.h, .cpp) files REMOVED ironically because smurf's re-implementation of [WiFiManager](https://github.com/tzapu/WiFiManager) is much cleaner and I do not require the need for OLED support, nor does it compile without it.
 
