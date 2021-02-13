@@ -56,7 +56,7 @@ void loop() {
     delay(100);
     Serial.println("Testing with connection to internet...");
 
-    http.begin(client, "http://ftp.mirrorservice.org/sites/archive.ubuntu.com/ubuntu/");
+    http.begin(client, "http://ftp.mirrorservice.org/sites/cdimage.ubuntu.com/");
 
     int httpCode = http.GET();
     
@@ -71,11 +71,17 @@ void loop() {
       {
           Serial.println("HTTP_CODE_OK");
       }
+
+      Serial.println("Sample of response content:");
+      Serial.print(http.getString().substring(0, 255));
+      Serial.print("...");
+      
       
     } else {
        Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
     }
-    
+
+        
     http.end();  
   
     // Wifi Dies? Start Portal Again
