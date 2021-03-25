@@ -25,11 +25,11 @@
 #define WiFiConnect_h
 #include <Arduino.h>
 #if defined(ESP8266)
-#pragma message Compiling WiFiConnect for ESP8266
+#pragma message "Compiling WiFiConnect for ESP8266"
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #else
-#pragma message Compiling WiFiConnect for ESP32
+#pragma message "Compiling WiFiConnect for ESP32"
 #include <WiFi.h>
 #include <WebServer.h>
 #endif
